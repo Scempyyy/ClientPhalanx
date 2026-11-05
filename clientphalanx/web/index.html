@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClientPhalanx - Freelancer Client Portal & Invoice Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            portal: {
+              900: '#070b13',
+              800: '#0e1524',
+              700: '#172238',
+              border: '#1f2e4c',
+              emerald: '#10b981',
+              cyan: '#06b6d4',
+              amber: '#f59e0b',
+              rose: '#f43f5e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-portal-900 text-slate-100 font-sans min-h-screen flex flex-col selection:bg-emerald-500 selection:text-black">
+
+  <!-- Header -->
+  <header class="border-b border-portal-border bg-portal-800/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="font-bold text-lg text-white tracking-wide">CLIENT<span class="text-emerald-400">PHALANX</span></h1>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">v0.1.0</span>
+          </div>
+          <p class="text-xs text-slate-400">Self-Hosted Freelancer Client Portal & Invoicing Engine</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3 text-xs font-mono">
+        <button onclick="setTab('invoices')" id="tabBtn-invoices" class="px-3 py-1 bg-portal-700 text-white rounded font-medium border border-portal-border">Invoices</button>
+        <button onclick="setTab('projects')" id="tabBtn-projects" class="px-3 py-1 bg-portal-900 text-slate-400 hover:text-white rounded font-medium border border-portal-border">Projects</button>
+        <button onclick="setTab('clients')" id="tabBtn-clients" class="px-3 py-1 bg-portal-900 text-slate-400 hover:text-white rounded font-medium border border-portal-border">Clients</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- KPI Metric Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-portal-800 border border-portal-border rounded-xl p-5">
+        <div class="text-xs text-emerald-400 font-mono uppercase tracking-wider">Collected Revenue</div>
+        <div class="flex items-baseline space-x-1 mt-2">
+          <span class="text-sm font-mono text-slate-400">$</span>
+          <span id="statPaid" class="text-3xl font-bold font-mono text-emerald-400">0.00</span>
+        </div>
+        <div class="text-xs text-slate-500 font-mono mt-1">Paid Invoices</div>
+      </div>
+
+      <div class="bg-portal-800 border border-portal-border rounded-xl p-5">
+        <div class="text-xs text-amber-400 font-mono uppercase tracking-wider">Outstanding Due</div>
+        <div class="flex items-baseline space-x-1 mt-2">
+          <span class="text-sm font-mono text-slate-400">$</span>
+          <span id="statOutstanding" class="text-3xl font-bold font-mono text-amber-400">0.00</span>
+        </div>
+        <div class="text-xs text-slate-500 font-mono mt-1">Pending Client Settlement</div>
+      </div>
+
+      <div class="bg-portal-800 border border-portal-border rounded-xl p-5">
+        <div class="text-xs text-cyan-400 font-mono uppercase tracking-wider">Gross Invoiced</div>
+        <div class="flex items-baseline space-x-1 mt-2">
+          <span class="text-sm font-mono text-slate-400">$</span>
+          <span id="statTotal" class="text-3xl font-bold font-mono text-white">0.00</span>
+        </div>
+        <div class="text-xs text-slate-500 font-mono mt-1">Total Generated Volume</div>
+      </div>
+
+      <div class="bg-portal-800 border border-portal-border rounded-xl p-5">
+        <div class="text-xs text-slate-400 font-mono uppercase tracking-wider">Active Client Roster</div>
+        <div id="statClients" class="text-3xl font-bold font-mono text-white mt-2">0</div>
+        <div id="statProjects" class="text-xs text-slate-500 font-mono mt-1">0 Active Projects</div>
+      </div>
+    </div>
+
+    <!-- TAB 1: Invoices View -->
+    <div id="tabContent-invoices" class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-white">Invoices & Statements</h2>
+          <p class="text-xs text-slate-400">Itemized billing statements, payment toggles, and client receipts.</p>
+        </div>
+        <button onclick="toggleModal('invoiceModal')" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-lg text-xs font-mono transition">+ Generate Invoice</button>
+      </div>
+
+      <div id="invoicesList" class="space-y-3">
+        <!-- Rendered invoices -->
+      </div>
+    </div>
+
+    <!-- TAB 2: Projects View -->
+    <div id="tabContent-projects" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-white">Active Projects & Deliverable Milestones</h2>
+          <p class="text-xs text-slate-400">Track client deliverables, milestone completion, and project budgets.</p>
+        </div>
+        <button onclick="toggleModal('projectModal')" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-lg text-xs font-mono transition">+ New Project</button>
+      </div>
+
+      <div id="projectsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Rendered projects -->
+      </div>
+    </div>
+
+    <!-- TAB 3: Clients View -->
+    <div id="tabContent-clients" class="hidden space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-white">Client Directory & Portal Links</h2>
+          <p class="text-xs text-slate-400">Manage client rates and copy unique zero-login client access tokens.</p>
+        </div>
+        <button onclick="toggleModal('clientModal')" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-lg text-xs font-mono transition">+ New Client</button>
+      </div>
+
+      <div id="clientsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Rendered clients -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- New Invoice Modal -->
+  <div id="invoiceModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-portal-800 border border-portal-border rounded-xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h4 class="font-bold text-white">Generate Itemized Invoice</h4>
+        <button onclick="toggleModal('invoiceModal')" class="text-slate-400 hover:text-white">&times;</button>
+      </div>
+      <form id="invoiceForm" class="space-y-3">
+        <div>
+          <label class="text-[11px] font-mono text-slate-400">Select Client</label>
+          <select id="invClientSelect" required class="w-full mt-1 px-3 py-2 bg-portal-900 border border-portal-border rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500"></select>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="col-span-2">
+            <label class="text-[11px] font-mono text-slate-400">Service Description</label>
+            <input type="text" id="invItemDesc" required placeholder="Full-Stack Web App Development"
+              class="w-full mt-1 px-3 py-2 bg-portal-900 border border-portal-border rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500" />
+          </div>
+          <div>
+            <label class="text-[11px] font-mono text-slate-400">Hours / Qty</label>
+            <input type="number" id="invItemHours" value="20" min="0.5" step="0.5" required
+              class="w-full mt-1 px-3 py-2 bg-portal-900 border border-portal-border rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[11px] font-mono text-slate-400">Due Terms</label>
+            <select id="invDueDays" class="w-full mt-1 px-3 py-2 bg-portal-900 border border-portal-border rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500">
+              <option value="7">Net 7 Days</option>
+              <option value="14" selected>Net 14 Days</option>
+              <option value="30">Net 30 Days</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] font-mono text-slate-400">Tax (%)</label>
+            <input type="number" id="invTax" value="0" min="0" max="100"
+              class="w-full mt-1 px-3 py-2 bg-portal-900 border border-portal-border rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500" />
+          </div>
+        </div>
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="toggleModal('invoiceModal')" class="px-4 py-2 bg-portal-900 border border-portal-border text-slate-400 rounded-lg text-xs font-mono">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-lg text-xs font-mono">Create Invoice</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- New Client Modal -->
+  <div id="clientModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-portal-800 border border-portal-border rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h4 class="font-bold text-white">Add Client Record</h4>
+        <button onclick="toggleModal('clientModal')" class="text-slate-400 hover:text-white">&times;</button>
+      </div>
+      <form id="clientForm" class="space-y-3">
+        <div>
+          <label class="text-[11px] font-mono text-slate-400">Client Name</label>
+          <input type="text" id="cliName" required placeholder="Jane Doe"
+            class="w-full mt-1 px-3 py-2 bg-portal-900 border border-portal-border rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500" />
+        </div>
+        <div>
+          <label class="text-[11px] font-mono text-slate-400">Company Name</label>
+          <input type="text" id="cliCompany" placeholder="Acme Dynamics Corp"
+            class="w-full mt-1 px-3 py-2 bg-portal-900 border border-portal-border rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[11px] font-mono text-slate-400">Hourly Rate ($)</label>
+            <input type="number" id="cliRate" value="95" min="10" required
+              class="w-full mt-1 px-3 py-2 bg-portal-900 border border-portal-border rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500" />
+          </div>
+          <div>
+            <label class="text-[11px] font-mono text-slate-400">Currency</label>
+            <select id="cliCurrency" class="w-full mt-1 px-3 py-2 bg-portal-900 border border-portal-border rounded-lg text-xs font-mono text-white focus:outline-none focus:border-emerald-500">
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+              <option value="GBP">GBP (£)</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="toggleModal('clientModal')" class="px-4 py-2 bg-portal-900 border border-portal-border text-slate-400 rounded-lg text-xs font-mono">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-lg text-xs font-mono">Save Client</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="border-t border-portal-border py-6 text-center text-xs text-slate-500 font-mono">
+    ClientPhalanx • Freelancer Client Operations & Automated Billing
+  </footer>
+
+  <script>
+    let globalData = {};
+
+    function toggleModal(id) {
+      document.getElementById(id).classList.toggle('hidden');
+    }
+
+    function setTab(tab) {
+      ['invoices', 'projects', 'clients'].forEach(t => {
+        document.getElementById(`tabContent-${t}`).classList.toggle('hidden', t !== tab);
+        document.getElementById(`tabBtn-${t}`).className = t === tab
+          ? 'px-3 py-1 bg-portal-700 text-white rounded font-medium border border-portal-border'
+          : 'px-3 py-1 bg-portal-900 text-slate-400 hover:text-white rounded font-medium border border-portal-border';
+      });
+    }
+
+    async function refreshDashboard() {
+      try {
+        const res = await fetch('/api/dashboard');
+        globalData = await res.json();
+
+        // Metrics
+        const m = globalData.metrics;
+        document.getElementById('statPaid').innerText = Number(m.total_paid).toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('statOutstanding').innerText = Number(m.total_outstanding).toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('statTotal').innerText = Number(m.total_invoiced).toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('statClients').innerText = m.active_clients;
+        document.getElementById('statProjects').innerText = `${m.active_projects} Active Projects`;
+
+        renderInvoices(globalData.invoices);
+        renderProjects(globalData.projects);
+        renderClients(globalData.clients);
+
+        // Update Client dropdown in Invoice Modal
+        const select = document.getElementById('invClientSelect');
+        select.innerHTML = '';
+        globalData.clients.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.innerText = `${c.name} (${c.company || 'Individual'}) - $${c.hourly_rate}/h`;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function renderInvoices(invoices) {
+      const list = document.getElementById('invoicesList');
+      list.innerHTML = '';
+
+      if (invoices.length === 0) {
+        list.innerHTML = `<div class="p-6 rounded-xl bg-portal-800 border border-portal-border text-xs font-mono text-slate-500 text-center">No invoices generated yet.</div>`;
+        return;
+      }
+
+      invoices.forEach(inv => {
+        const isPaid = inv.status === 'PAID';
+        const card = document.createElement('div');
+        card.className = 'bg-portal-800 border border-portal-border rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4';
+        card.innerHTML = `
+          <div class="flex items-center space-x-4">
+            <div class="w-10 h-10 rounded-lg ${isPaid ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'} flex items-center justify-center font-mono font-bold text-xs">
+              ${inv.currency === 'USD' ? '$' : inv.currency}
+            </div>
+            <div>
+              <div class="flex items-center space-x-2">
+                <span class="font-bold text-white text-sm font-mono">${inv.id}</span>
+                <span class="text-xs text-slate-400">• ${inv.client_company || inv.client_name}</span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded ${isPaid ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}">${inv.status}</span>
+              </div>
+              <div class="text-[11px] text-slate-500 font-mono mt-0.5">Due: ${inv.due_date} • ${inv.items.length} line items</div>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-4">
+            <div class="text-right">
+              <div class="text-base font-bold font-mono text-white">$${Number(inv.total).toFixed(2)}</div>
+              <div class="text-[10px] text-slate-500 font-mono">Tax: $${Number(inv.tax_amount).toFixed(2)}</div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button onclick="toggleInvoicePaid('${inv.id}', '${isPaid ? 'SENT' : 'PAID'}')" 
+                class="px-3 py-1 rounded text-xs font-mono border transition ${isPaid ? 'bg-slate-700/30 text-slate-400 border-slate-700 hover:text-white' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'}">
+                ${isPaid ? 'Mark Unpaid' : 'Mark Paid ✓'}
+              </button>
+              <button onclick="deleteInvoice('${inv.id}')" class="text-slate-500 hover:text-rose-400 text-xs font-mono p-1">&times;</button>
+            </div>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function renderProjects(projects) {
+      const grid = document.getElementById('projectsGrid');
+      grid.innerHTML = '';
+
+      if (projects.length === 0) {
+        grid.innerHTML = `<div class="p-6 col-span-2 rounded-xl bg-portal-800 border border-portal-border text-xs font-mono text-slate-500 text-center">No projects registered.</div>`;
+        return;
+      }
+
+      projects.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'bg-portal-800 border border-portal-border rounded-xl p-5 space-y-3';
+        card.innerHTML = `
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 uppercase">${p.status}</span>
+              <h4 class="font-bold text-white text-base mt-1">${p.title}</h4>
+              <div class="text-xs text-slate-400 font-mono">${p.client_company || p.client_name}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-sm font-bold font-mono text-white">$${Number(p.budget).toFixed(2)}</div>
+              <div class="text-[10px] text-slate-500 font-mono">Deadline: ${p.deadline || 'Ongoing'}</div>
+            </div>
+          </div>
+
+          <div class="text-xs text-slate-300 bg-portal-900 border border-portal-border p-2.5 rounded-lg">
+            ${p.description || 'No project description.'}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function renderClients(clients) {
+      const grid = document.getElementById('clientsGrid');
+      grid.innerHTML = '';
+
+      if (clients.length === 0) {
+        grid.innerHTML = `<div class="p-6 col-span-3 rounded-xl bg-portal-800 border border-portal-border text-xs font-mono text-slate-500 text-center">No clients configured.</div>`;
+        return;
+      }
+
+      clients.forEach(c => {
+        const card = document.createElement('div');
+        card.className = 'bg-portal-800 border border-portal-border rounded-xl p-4 space-y-3';
+        card.innerHTML = `
+          <div class="flex items-start justify-between">
+            <div>
+              <h4 class="font-bold text-white text-sm">${c.name}</h4>
+              <div class="text-xs text-slate-400 font-mono">${c.company || 'Individual'}</div>
+            </div>
+            <span class="text-xs font-mono text-emerald-400 font-bold">$${c.hourly_rate}/h</span>
+          </div>
+
+          <div class="pt-2 border-t border-portal-border/50 space-y-1.5">
+            <div class="text-[10px] text-slate-500 font-mono">Portal Token Link:</div>
+            <div class="flex items-center space-x-1.5">
+              <input readonly value="/api/portal/${c.portal_token}" class="flex-1 bg-portal-900 border border-portal-border rounded px-2 py-1 text-[10px] font-mono text-cyan-300 focus:outline-none" />
+              <button onclick="navigator.clipboard.writeText(window.location.origin + '/api/portal/${c.portal_token}'); alert('Client portal URL copied!');" class="px-2 py-1 bg-portal-700 hover:bg-emerald-500 hover:text-black rounded text-[10px] font-mono text-slate-300 transition">Copy</button>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    async function toggleInvoicePaid(id, status) {
+      await fetch('/api/invoices/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status })
+      });
+      await refreshDashboard();
+    }
+
+    async function deleteInvoice(id) {
+      if (!confirm("Delete this invoice?")) return;
+      await fetch(`/api/invoices/${id}`, { method: 'DELETE' });
+      await refreshDashboard();
+    }
+
+    document.getElementById('invoiceForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const client_id = document.getElementById('invClientSelect').value;
+      const desc = document.getElementById('invItemDesc').value;
+      const hours = parseFloat(document.getElementById('invItemHours').value);
+      const due_days = parseInt(document.getElementById('invDueDays').value);
+      const tax_percent = parseFloat(document.getElementById('invTax').value);
+
+      await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id,
+          items: [{ description: desc, hours }],
+          due_days,
+          tax_percent
+        })
+      });
+
+      toggleModal('invoiceModal');
+      document.getElementById('invoiceForm').reset();
+      await refreshDashboard();
+    });
+
+    document.getElementById('clientForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('cliName').value;
+      const company = document.getElementById('cliCompany').value;
+      const hourly_rate = parseFloat(document.getElementById('cliRate').value);
+      const currency = document.getElementById('cliCurrency').value;
+
+      await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, company, hourly_rate, currency })
+      });
+
+      toggleModal('clientModal');
+      document.getElementById('clientForm').reset();
+      await refreshDashboard();
+    });
+
+    // Auto seed demo client and invoice if empty
+    async function init() {
+      const res = await fetch('/api/dashboard');
+      const data = await res.json();
+      if (data.clients.length === 0) {
+        const c1Res = await fetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: "Sarah Connor", company: "Cyberdyne Systems LLC", hourly_rate: 120.0, currency: "USD" })
+        });
+        const c1 = await c1Res.json();
+
+        await fetch('/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_id: c1.id,
+            title: "Autonomous Defense Platform Refactor",
+            budget: 6500.0,
+            deadline: "2026-12-01",
+            description: "Modernizing core system services and decoupling telemetry pipeline."
+          })
+        });
+
+        await fetch('/api/invoices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_id: c1.id,
+            items: [
+              { description: "Architecture planning & codebase audit", hours: 15, rate: 120.0 },
+              { description: "Microservice extraction & containerization", hours: 25, rate: 120.0 }
+            ],
+            due_days: 14,
+            tax_percent: 0.0
+          })
+        });
+      }
+      await refreshDashboard();
+    }
+
+    init();
+  </script>
+</body>
+</html>
